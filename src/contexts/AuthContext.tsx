@@ -9,7 +9,7 @@ interface UserProfile {
   user_id: string;
   email: string | null;
   full_name: string;
-  role: UserRole;
+  role?: UserRole;
   is_verified: boolean;
 }
 
@@ -17,7 +17,7 @@ interface AuthContextType {
   user: User | null;
   session: Session | null;
   userProfile: UserProfile | null;
-  userRole: UserRole;
+  userRole: UserRole | null;
   loading: boolean;
   signIn: (email: string, password: string, role?: UserRole) => Promise<{ error: any; data?: any }>;
   signUp: (email: string, password: string, fullName: string, role?: UserRole) => Promise<{ error: any; data?: any }>;
@@ -32,11 +32,12 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const [user, setUser] = useState<User | null>(null);
   const [session, setSession] = useState<Session | null>(null);
   const [userProfile, setUserProfile] = useState<UserProfile | null>(null);
-  const [userRole, setUserRole] = useState<UserRole>('user');
+  const [userRole, setUserRole] = useState<UserRole | null>(null);
   const [loading, setLoading] = useState(true);
 
   const fetchUserProfile = async (userId: string) => {
     try {
+      console.log('Fetching profile for userId:', userId);
       const [profileResult, roleResult] = await Promise.all([
         supabase
           .from('user_profiles')
@@ -52,9 +53,14 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       ]);
 
       if (profileResult.data) {
-        const role = roleResult.data?.role || 'user';
-        setUserRole(role as UserRole);
+        const role = roleResult.data?.role as UserRole || (profileResult.data as any).user_type as UserRole || null;
+        console.log('Profile found, role:', role);
+        setUserRole(role);
         setUserProfile({ ...profileResult.data, role } as UserProfile);
+      } else {
+        console.log('No profile found in user_profiles');
+        setUserRole(null);
+        setUserProfile(null);
       }
     } catch (error) {
       console.error('Error fetching user profile:', error);
@@ -80,15 +86,19 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     });
 
     const { data: { subscription } } = supabase.auth.onAuthStateChange((_event, session) => {
+      console.log('Auth state changed:', _event, session?.user?.email);
       (async () => {
+        setLoading(true);
         setSession(session);
         setUser(session?.user ?? null);
 
         if (session?.user) {
+          console.log('Logged in user:', session.user.email);
           await fetchUserProfile(session.user.id);
         } else {
+          console.log('No session user found');
           setUserProfile(null);
-          setUserRole('user');
+          setUserRole(null);
         }
 
         setLoading(false);
@@ -170,8 +180,10 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const signOut = async () => {
     await supabase.auth.signOut();
     localStorage.removeItem('admin_session');
+    localStorage.removeItem('userType');
+    localStorage.removeItem('userId');
     setUserProfile(null);
-    setUserRole('user');
+    setUserRole(null);
   };
 
   return (

@@ -1,40 +1,25 @@
-import { useState, useEffect } from 'react';
+import { useAuth } from './contexts/AuthContext';
 import LoginPage from './pages/LoginPage';
 import NewAdminDashboard from './pages/NewAdminDashboard';
 import NewAdvertiserDashboard from './pages/NewAdvertiserDashboard';
 import { LanguageProvider } from './contexts/LanguageContext';
 
-type UserType = 'admin' | 'advertiser' | null;
+
 
 export default function DashboardApp() {
-  const [userType, setUserType] = useState<UserType>(null);
-  const [userId, setUserId] = useState<string | null>(null);
+  const { user, userRole, userProfile, signOut, loading } = useAuth();
 
-  useEffect(() => {
-    const savedUserType = localStorage.getItem('userType') as UserType;
-    const savedUserId = localStorage.getItem('userId');
-
-    if (savedUserType && savedUserId) {
-      setUserType(savedUserType);
-      setUserId(savedUserId);
-    }
-  }, []);
-
-  const handleLoginSuccess = (id: string, role: 'admin' | 'advertiser') => {
-    setUserType(role);
-    setUserId(id);
-    localStorage.setItem('userType', role);
-    localStorage.setItem('userId', id);
+  const handleLoginSuccess = () => {
+    // Auth context will automatically update and re-render
   };
 
-  const handleLogout = () => {
-    setUserType(null);
-    setUserId(null);
-    localStorage.removeItem('userType');
-    localStorage.removeItem('userId');
+  const handleLogout = async () => {
+    await signOut();
   };
 
-  if (!userType || !userId) {
+  if (loading) return null;
+
+  if (!user || !userRole || !userProfile) {
     return (
       <LanguageProvider>
         <LoginPage onLoginSuccess={handleLoginSuccess} />
@@ -42,22 +27,22 @@ export default function DashboardApp() {
     );
   }
 
-  if (userType === 'admin') {
+  if (userRole === 'admin') {
     return (
       <LanguageProvider>
         <NewAdminDashboard
-          adminId={userId}
+          adminId={userProfile.id}
           onLogout={handleLogout}
         />
       </LanguageProvider>
     );
   }
 
-  if (userType === 'advertiser') {
+  if (userRole === 'advertiser') {
     return (
       <LanguageProvider>
         <NewAdvertiserDashboard
-          advertiserId={userId}
+          advertiserId={userProfile.id}
           onLogout={handleLogout}
         />
       </LanguageProvider>

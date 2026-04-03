@@ -1,7 +1,8 @@
 import { useState, useRef } from 'react';
-import { ShoppingBag, Store, Phone, MapPin, CheckCircle, Rocket, Target, TrendingUp, Users, Upload, Sparkles, Menu, X } from 'lucide-react';
+import { ShoppingBag, Store, Phone, MapPin, CheckCircle, Rocket, Target, TrendingUp, Users, Upload, Sparkles, Menu, X, LayoutDashboard, ArrowRight } from 'lucide-react';
 import { QRCodeSVG } from 'qrcode.react';
-import { supabase } from './lib/supabase';
+import { useAuth } from './contexts/AuthContext';
+import { useLanguage } from './contexts/LanguageContext';
 
 const WhatsAppIcon = ({ size = 20, className = "" }: { size?: number; className?: string }) => (
   <svg
@@ -16,6 +17,8 @@ const WhatsAppIcon = ({ size = 20, className = "" }: { size?: number; className?
 );
 
 function App() {
+  const { user, userRole, signOut } = useAuth();
+  const { dir } = useLanguage();
   const [activeTab, setActiveTab] = useState<'advertiser' | 'store'>('advertiser');
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
@@ -161,6 +164,15 @@ function App() {
               >
                 تطبيق المستخدمين
               </a>
+              {user && (
+                <a
+                  href={userRole === 'user' ? '/?user=true' : '/?admin=true'}
+                  className="bg-emerald-50 text-emerald-700 px-4 py-2 rounded-lg font-bold flex items-center gap-2 hover:bg-emerald-100 transition-all border border-emerald-200"
+                >
+                  <LayoutDashboard size={18} />
+                  {userRole === 'user' ? 'لوحة الجوائز' : 'لوحة التحكم'}
+                </a>
+              )}
             </nav>
             <div className="flex items-center gap-3">
               <a
@@ -223,6 +235,15 @@ function App() {
                 >
                   تطبيق المستخدمين
                 </a>
+                {user && (
+                  <button
+                    onClick={() => window.location.href = userRole === 'user' ? '/?user=true' : '/?admin=true'}
+                    className="flex items-center gap-2 text-emerald-600 font-bold py-2"
+                  >
+                    <LayoutDashboard size={18} />
+                    <span>{userRole === 'user' ? 'لوحة الجوائز' : 'لوحة التحكم'}</span>
+                  </button>
+                )}
               </div>
             </nav>
           )}
@@ -259,34 +280,61 @@ function App() {
             </div>
           </div>
 
-          <div className="flex justify-center gap-4 mb-12">
-            <button
-              onClick={() => {
-                setActiveTab('advertiser');
-                scrollToForm();
-              }}
-              className={`px-8 py-4 rounded-xl font-bold text-lg transition-all ${
-                activeTab === 'advertiser'
-                  ? 'bg-emerald-600 text-white shadow-lg'
-                  : 'bg-white text-slate-700 border-2 border-slate-200 hover:border-emerald-300'
-              }`}
-            >
-              أريد الإعلان
-            </button>
-            <button
-              onClick={() => {
-                setActiveTab('store');
-                scrollToForm();
-              }}
-              className={`px-8 py-4 rounded-xl font-bold text-lg transition-all ${
-                activeTab === 'store'
-                  ? 'bg-emerald-600 text-white shadow-lg'
-                  : 'bg-white text-slate-700 border-2 border-slate-200 hover:border-emerald-300'
-              }`}
-            >
-              أملك بقالة
-            </button>
-          </div>
+          {user ? (
+            <div className="flex flex-col items-center animate-fade-in">
+              <div className="bg-white/80 backdrop-blur-md rounded-3xl p-8 shadow-2xl border-2 border-emerald-100 text-center max-w-lg w-full mb-12">
+                <div className="w-20 h-20 bg-emerald-100 rounded-full flex items-center justify-center mx-auto mb-6">
+                  <LayoutDashboard className="text-emerald-600" size={40} />
+                </div>
+                <h2 className="text-3xl font-black text-slate-900 mb-4">مرحباً بك مجدداً!</h2>
+                <p className="text-slate-600 text-lg mb-8">
+                  أنت مسجل دخول بالفعل. انطلق إلى لوحة التحكم الخاصة بك لمتابعة نشاطك.
+                </p>
+                <a
+                  href={userRole === 'user' ? '/?user=true' : '/?admin=true'}
+                  className="w-full inline-flex items-center justify-center gap-3 bg-emerald-600 text-white px-8 py-4 rounded-2xl font-black text-xl shadow-lg hover:bg-emerald-700 transition-all hover:scale-105"
+                >
+                  {userRole === 'user' ? 'الذهاب لمتجر الجوائز' : 'الذهاب للوحة التحكم'}
+                  <ArrowRight className={dir === 'rtl' ? 'rotate-180' : ''} />
+                </a>
+                <button
+                  onClick={signOut}
+                  className="mt-6 text-slate-500 hover:text-red-500 font-bold transition-colors"
+                >
+                  تسجيل الخروج
+                </button>
+              </div>
+            </div>
+          ) : (
+            <div className="flex justify-center gap-4 mb-12">
+              <button
+                onClick={() => {
+                  setActiveTab('advertiser');
+                  scrollToForm();
+                }}
+                className={`px-8 py-4 rounded-xl font-bold text-lg transition-all ${
+                  activeTab === 'advertiser'
+                    ? 'bg-emerald-600 text-white shadow-lg'
+                    : 'bg-white text-slate-700 border-2 border-slate-200 hover:border-emerald-300'
+                }`}
+              >
+                أريد الإعلان
+              </button>
+              <button
+                onClick={() => {
+                  setActiveTab('store');
+                  scrollToForm();
+                }}
+                className={`px-8 py-4 rounded-xl font-bold text-lg transition-all ${
+                  activeTab === 'store'
+                    ? 'bg-emerald-600 text-white shadow-lg'
+                    : 'bg-white text-slate-700 border-2 border-slate-200 hover:border-emerald-300'
+                }`}
+              >
+                أملك بقالة
+              </button>
+            </div>
+          )}
 
           {activeTab === 'advertiser' ? (
             <div className="max-w-6xl mx-auto">
