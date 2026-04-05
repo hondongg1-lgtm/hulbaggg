@@ -100,14 +100,14 @@ export default function AdvertiserDashboard({ userId }: { userId: string }) {
   }
 
   return (
-    <div className="min-h-screen bg-gray-50 p-6" dir="rtl">
+    <div className="min-h-screen bg-gray-50 p-3 sm:p-6 overflow-x-hidden" dir="rtl">
       <div className="max-w-7xl mx-auto">
-        <div className="mb-8">
-          <h1 className="text-3xl font-bold text-gray-900 mb-2">لوحة التحكم</h1>
-          <p className="text-gray-600">تتبع أداء حملاتك الإعلانية</p>
+        <div className="mb-6 sm:mb-8">
+          <h1 className="text-2xl sm:text-3xl font-bold text-gray-900 mb-2">لوحة التحكم</h1>
+          <p className="text-sm sm:text-base text-gray-600">تتبع أداء حملاتك الإعلانية</p>
         </div>
 
-        <div className="grid grid-cols-1 md:grid-cols-4 gap-6 mb-8">
+        <div className="grid grid-cols-2 md:grid-cols-4 gap-3 sm:gap-6 mb-6 sm:mb-8">
           <div className="bg-white rounded-xl p-6 shadow-sm">
             <div className="flex items-center gap-3 mb-4">
               <div className="w-12 h-12 bg-blue-100 rounded-lg flex items-center justify-center">
@@ -171,10 +171,10 @@ export default function AdvertiserDashboard({ userId }: { userId: string }) {
         </div>
 
         <div className="bg-white rounded-xl shadow-sm overflow-hidden">
-          <div className="p-6 border-b border-gray-200">
+          <div className="p-4 sm:p-6 border-b border-gray-200">
             <div className="flex items-center gap-3">
-              <BarChart3 className="w-6 h-6 text-blue-600" />
-              <h2 className="text-xl font-bold text-gray-900">أداء الحملات</h2>
+              <BarChart3 className="w-5 h-5 sm:w-6 sm:h-6 text-blue-600" />
+              <h2 className="text-lg sm:text-xl font-bold text-gray-900">أداء الحملات</h2>
             </div>
           </div>
 
@@ -185,7 +185,7 @@ export default function AdvertiserDashboard({ userId }: { userId: string }) {
                 <p className="text-sm text-gray-400 mt-2">ابدأ حملتك الأولى لرؤية الإحصائيات</p>
               </div>
             ) : (
-              <table className="w-full">
+              <table className="w-full min-w-[700px]">
                 <thead className="bg-gray-50">
                   <tr>
                     <th className="px-6 py-4 text-right text-sm font-medium text-gray-600">الحملة</th>

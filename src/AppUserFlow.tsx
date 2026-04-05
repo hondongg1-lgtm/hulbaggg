@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
-import { LanguageProvider } from './contexts/LanguageContext';
 import { useAuth } from './contexts/AuthContext';
+import Navbar from './components/Navbar';
 import LandingPage from './pages/LandingPage';
 import UserLoginPage from './pages/UserLoginPage';
 import MarketplacePage from './pages/MarketplacePage';
@@ -9,8 +9,9 @@ import GamePage from './pages/GamePage';
 import PrizeDetailsPage from './pages/PrizeDetailsPage';
 import PrivacyPolicyPage from './pages/PrivacyPolicyPage';
 import TermsOfServicePage from './pages/TermsOfServicePage';
+import MyRewardsPage from './pages/MyRewardsPage';
 
-type FlowStep = 'landing' | 'verification' | 'marketplace' | 'campaignDetail' | 'game' | 'prizeDetails' | 'privacy' | 'terms';
+type FlowStep = 'landing' | 'verification' | 'marketplace' | 'campaignDetail' | 'game' | 'prizeDetails' | 'privacy' | 'terms' | 'myRewards';
 
 export default function AppUserFlow() {
   const { userProfile, loading } = useAuth();
@@ -75,59 +76,73 @@ export default function AppUserFlow() {
   };
 
   return (
-    <LanguageProvider>
-      {currentStep === 'landing' && (
-        <LandingPage
-          onStart={handleStart}
-          onNavigateToPrivacy={handleNavigateToPrivacy}
-          onNavigateToTerms={handleNavigateToTerms}
-        />
+    <div className="flex flex-col min-h-screen">
+      {/* Show Navbar for all steps except landing and verification */}
+      {currentStep !== 'landing' && currentStep !== 'verification' && (
+        <Navbar onNavigate={setCurrentStep} />
       )}
+      
+      <main className="flex-1">
+        {currentStep === 'landing' && (
+          <LandingPage
+            onStart={handleStart}
+            onNavigateToPrivacy={handleNavigateToPrivacy}
+            onNavigateToTerms={handleNavigateToTerms}
+          />
+        )}
 
-      {currentStep === 'verification' && (
-        <UserLoginPage onVerified={handleVerified} onBack={handleBackToLanding} />
-      )}
+        {currentStep === 'verification' && (
+          <UserLoginPage onVerified={handleVerified} onBack={handleBackToLanding} />
+        )}
 
-      {currentStep === 'marketplace' && (
-        <MarketplacePage
-          userId={userId}
-          onSelectCampaign={handleSelectCampaign}
-        />
-      )}
+        {currentStep === 'marketplace' && (
+          <MarketplacePage
+            userId={userId}
+            onSelectCampaign={handleSelectCampaign}
+          />
+        )}
 
-      {currentStep === 'campaignDetail' && (
-        <CampaignDetailPage
-          campaignId={selectedCampaign}
-          userId={userId}
-          onBack={handleBackToMarketplace}
-          onPlayGame={handlePlayGame}
-        />
-      )}
+        {currentStep === 'campaignDetail' && (
+          <CampaignDetailPage
+            campaignId={selectedCampaign}
+            userId={userId}
+            onBack={handleBackToMarketplace}
+            onPlayGame={handlePlayGame}
+          />
+        )}
 
-      {currentStep === 'game' && (
-        <GamePage
-          campaignId={selectedCampaign}
-          userId={userId}
-          onComplete={handleGameComplete}
-          onBack={handleBackToMarketplace}
-        />
-      )}
+        {currentStep === 'game' && (
+          <GamePage
+            campaignId={selectedCampaign}
+            userId={userId}
+            onComplete={handleGameComplete}
+            onBack={handleBackToMarketplace}
+          />
+        )}
 
-      {currentStep === 'prizeDetails' && (
-        <PrizeDetailsPage
-          claimCode={claimCode}
-          userId={userId}
-          onBack={handleBackToMarketplace}
-        />
-      )}
+        {currentStep === 'prizeDetails' && (
+          <PrizeDetailsPage
+            claimCode={claimCode}
+            userId={userId}
+            onBack={handleBackToMarketplace}
+          />
+        )}
 
-      {currentStep === 'privacy' && (
-        <PrivacyPolicyPage onBack={handleBackToLanding} />
-      )}
+        {currentStep === 'privacy' && (
+          <PrivacyPolicyPage onBack={handleBackToLanding} />
+        )}
 
-      {currentStep === 'terms' && (
-        <TermsOfServicePage onBack={handleBackToLanding} />
-      )}
-    </LanguageProvider>
+        {currentStep === 'terms' && (
+          <TermsOfServicePage onBack={handleBackToLanding} />
+        )}
+
+        {currentStep === 'myRewards' && (
+          <MyRewardsPage 
+            userId={userId} 
+            onBack={handleBackToMarketplace} 
+          />
+        )}
+      </main>
+    </div>
   );
 }

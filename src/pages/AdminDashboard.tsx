@@ -92,45 +92,45 @@ export default function AdminDashboard() {
   ];
 
   return (
-    <div className="min-h-screen bg-slate-50" dir="rtl">
+    <div className="min-h-screen bg-slate-50 overflow-x-hidden" dir="rtl">
       <header className="bg-white border-b border-slate-200 shadow-sm sticky top-0 z-40">
-        <div className="container mx-auto px-6 py-4">
-          <div className="flex items-center justify-between">
-            <div className="flex items-center gap-4">
+        <div className="container mx-auto px-3 sm:px-6 py-3 sm:py-4">
+          <div className="flex items-center justify-between gap-2">
+            <div className="flex items-center gap-2 sm:gap-4 min-w-0">
               <img
                 src="/Gemini_Generated_Image_sfh2jysfh2jysfh2_(1).png"
                 alt="حلول الحقيبة"
-                className="h-12 w-auto"
+                className="h-10 sm:h-12 w-auto flex-shrink-0"
               />
-              <div>
-                <h1 className="text-2xl font-black text-slate-900">لوحة الإدارة</h1>
-                <p className="text-sm text-slate-600">مرحباً، {adminData?.full_name || 'المدير'}</p>
+              <div className="min-w-0">
+                <h1 className="text-xl sm:text-2xl font-black text-slate-900 truncate">لوحة الإدارة</h1>
+                <p className="text-xs sm:text-sm text-slate-600 truncate">مرحباً، {adminData?.full_name || 'المدير'}</p>
               </div>
             </div>
             <button
               onClick={handleLogout}
-              className="flex items-center gap-2 px-4 py-2 bg-red-100 text-red-700 rounded-lg font-semibold hover:bg-red-200 transition-all"
+              className="flex items-center gap-1 sm:gap-2 px-3 sm:px-4 py-1.5 sm:py-2 bg-red-100 text-red-700 rounded-lg font-semibold hover:bg-red-200 transition-all text-sm flex-shrink-0"
             >
-              <LogOut size={18} />
-              <span>تسجيل الخروج</span>
+              <LogOut size={16} />
+              <span className="hidden sm:inline">تسجيل الخروج</span>
             </button>
           </div>
         </div>
       </header>
 
-      <div className="container mx-auto px-6 py-8">
-        <div className="flex gap-2 bg-white rounded-xl p-2 shadow-sm border border-slate-200 mb-8 w-fit">
+      <div className="container mx-auto px-3 sm:px-6 py-4 sm:py-8">
+        <div className="flex flex-wrap gap-1.5 sm:gap-2 bg-white rounded-xl p-1.5 sm:p-2 shadow-sm border border-slate-200 mb-6 sm:mb-8">
           {tabs.map((tab) => (
             <button
               key={tab.id}
               onClick={() => setActiveTab(tab.id)}
-              className={`flex items-center gap-2 px-6 py-3 rounded-lg font-bold transition-all ${
+              className={`flex items-center gap-1.5 sm:gap-2 px-3 sm:px-6 py-2 sm:py-3 rounded-lg text-sm sm:text-base font-bold transition-all ${
                 activeTab === tab.id
                   ? 'bg-emerald-600 text-white shadow-md'
                   : 'text-slate-600 hover:text-slate-900 hover:bg-slate-50'
               }`}
             >
-              <tab.icon size={20} />
+              <tab.icon size={18} />
               <span>{tab.label}</span>
             </button>
           ))}

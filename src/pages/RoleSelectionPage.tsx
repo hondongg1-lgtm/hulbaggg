@@ -14,38 +14,54 @@ export default function RoleSelectionPage() {
     if (!user) return;
     setLoading(true);
     setError('');
+    
+    console.log('[V2-FIXED] Handling Selection for role:', role);
+    console.log('[V2-FIXED] User ID:', user.id);
 
     try {
       // 1. Create/Update Profile
+      console.log('[V2-FIXED] Updating user_profiles...');
       const { error: profileError } = await supabase
         .from('user_profiles')
         .upsert({
-          user_id: user.id,
+          id: user.id,
           email: user.email,
           full_name: user.user_metadata?.full_name || '',
           auth_provider: 'google',
-          is_verified: true,
-          user_type: role // Using user_type column if it exists in profiles
+          is_verified: true
         });
 
-      if (profileError) throw profileError;
+      if (profileError) {
+        console.error('[V2-FIXED] Profile Update Error:', profileError);
+        throw profileError;
+      }
 
       // 2. Create Role Record
+      // We always save the role to user_roles to ensure AuthContext can find it reliably.
+      console.log('[V2-FIXED] Updating user_roles...');
       const { error: roleError } = await supabase
         .from('user_roles')
-        .insert({
+        .upsert({
           user_id: user.id,
           email: user.email,
           role: role,
           is_active: true
-        });
+        }, { onConflict: 'email' });
 
-      if (roleError) throw roleError;
+      if (roleError) {
+        console.error('[V2-FIXED] Role Update Error:', roleError);
+        throw roleError;
+      }
 
       // 3. Refresh Auth Context
+      console.log('[V2-FIXED] Refreshing user profile context...');
+      // Wait a tiny bit for DB propagation
+      await new Promise(resolve => setTimeout(resolve, 800));
       await refreshUserProfile();
+      
+      console.log('[V2-FIXED] Flow complete.');
     } catch (err: any) {
-      console.error('Role selection error:', err);
+      console.error('[V2-FIXED] Final Exception Catch:', err);
       setError(t('فشل في حفظ الاختيار، حاول مرة أخرى', 'Failed to save selection, try again'));
     } finally {
       setLoading(false);
@@ -75,6 +91,7 @@ export default function RoleSelectionPage() {
           <button
             onClick={() => handleSelectRole('user')}
             disabled={loading}
+            role="button"
             className="group relative bg-white rounded-3xl p-8 shadow-xl border-4 border-transparent hover:border-primary-500 transition-all transform hover:scale-105 text-right flex flex-col items-center md:items-start"
           >
             <div className="w-20 h-20 bg-primary-100 rounded-2xl flex items-center justify-center mb-6 group-hover:scale-110 transition-transform">
@@ -96,6 +113,7 @@ export default function RoleSelectionPage() {
           <button
             onClick={() => handleSelectRole('advertiser')}
             disabled={loading}
+            role="button"
             className="group relative bg-white rounded-3xl p-8 shadow-xl border-4 border-transparent hover:border-secondary-500 transition-all transform hover:scale-105 text-right flex flex-col items-center md:items-start"
           >
             <div className="w-20 h-20 bg-secondary-100 rounded-2xl flex items-center justify-center mb-6 group-hover:scale-110 transition-transform">

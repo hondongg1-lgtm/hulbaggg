@@ -1,5 +1,5 @@
 import { useAuth } from './contexts/AuthContext';
-import { LanguageProvider } from './contexts/LanguageContext';
+
 import App from './App';
 import AppUserFlow from './AppUserFlow';
 import DashboardApp from './DashboardApp';
@@ -33,11 +33,7 @@ export default function RootRouter() {
   if (user) {
     if (!userRole) {
       console.log('[RootRouter] Logged in but NO ROLE. Showing RoleSelectionPage');
-      return (
-        <LanguageProvider>
-          <RoleSelectionPage />
-        </LanguageProvider>
-      );
+      return <RoleSelectionPage />;
     }
 
     if (userRole === 'user') {

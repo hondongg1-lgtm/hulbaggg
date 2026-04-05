@@ -2,13 +2,13 @@ import { useState, useEffect } from 'react';
 import { supabase } from '../lib/supabase';
 import {
   Package, PlusCircle, TrendingUp, Users, Eye, MapPin,
-  Clock, CheckCircle, XCircle, PlayCircle, PauseCircle, Trash2, Gift, CreditCard
+  Clock, CheckCircle, XCircle, PlayCircle, PauseCircle, Trash2, Gift, CreditCard, QrCode
 } from 'lucide-react';
 import { useLanguage } from '../contexts/LanguageContext';
+import { QRCodeSVG } from 'qrcode.react';
 
 interface NewAdvertiserDashboardProps {
   advertiserId: string;
-  onLogout: () => void;
 }
 
 interface Campaign {
@@ -33,7 +33,7 @@ interface CampaignStats {
   win_rate: number;
 }
 
-export default function NewAdvertiserDashboard({ advertiserId, onLogout }: NewAdvertiserDashboardProps) {
+export default function NewAdvertiserDashboard({ advertiserId }: NewAdvertiserDashboardProps) {
   const { language } = useLanguage();
   const [campaigns, setCampaigns] = useState<Campaign[]>([]);
   const [campaignStats, setCampaignStats] = useState<Record<string, CampaignStats>>({});
@@ -42,6 +42,7 @@ export default function NewAdvertiserDashboard({ advertiserId, onLogout }: NewAd
   const [selectedCampaign, setSelectedCampaign] = useState<Campaign | null>(null);
   const [showDetailsModal, setShowDetailsModal] = useState(false);
   const [showPaymentModal, setShowPaymentModal] = useState(false);
+  const [showQRModal, setShowQRModal] = useState(false);
   const [paymentLoading, setPaymentLoading] = useState(false);
   const [paymentData, setPaymentData] = useState({
     clientName: '',
@@ -180,7 +181,37 @@ export default function NewAdvertiserDashboard({ advertiserId, onLogout }: NewAd
 
   const loadData = async () => {
     try {
-      // Load campaigns
+      // 1. Verify/Create advertiser profile automatically
+      const { data: profileCheck, error: checkError } = await supabase
+        .from('advertiser_accounts')
+        .select('*')
+        .eq('id', advertiserId)
+        .maybeSingle();
+
+      if (checkError) console.error('Profile check error:', checkError);
+
+      if (!profileCheck) {
+        // If not found, fetch from user_profiles to sync
+        const { data: userData } = await supabase
+          .from('user_profiles')
+          .select('*')
+          .eq('id', advertiserId)
+          .maybeSingle();
+
+        if (userData) {
+          await supabase.from('advertiser_accounts').insert({
+            id: advertiserId,
+            username: userData.email,
+            email: userData.email,
+            full_name: userData.full_name || '',
+            business_name: userData.full_name || '',
+            password: 'PROMOTED_AUTO_SYNC',
+            is_active: true
+          });
+        }
+      }
+
+      // 2. Load campaigns
       const { data: campData } = await supabase
         .from('campaigns')
         .select('*')
@@ -292,7 +323,7 @@ export default function NewAdvertiserDashboard({ advertiserId, onLogout }: NewAd
         alert(language === 'ar'
           ? 'حساب المعلن غير موجود. الرجاء تسجيل الدخول مرة أخرى'
           : 'Advertiser account not found. Please login again');
-        onLogout();
+        window.location.reload();
         return;
       }
 
@@ -315,6 +346,7 @@ export default function NewAdvertiserDashboard({ advertiserId, onLogout }: NewAd
           description_en: newCampaign.description,
           bag_color: '#22c55e',
           campaign_code: `CAMP-${Date.now()}`,
+          code: `CAMP-${Date.now()}`,
           start_date: newCampaign.start_date,
           end_date: newCampaign.end_date,
           win_probability: newCampaign.win_probability,
@@ -491,77 +523,47 @@ export default function NewAdvertiserDashboard({ advertiserId, onLogout }: NewAd
   const totalBagsDistributed = campaigns.reduce((sum, c) => sum + (c.bags_distributed || 0), 0);
 
   return (
-    <div className="min-h-screen bg-gray-50" dir={language === 'ar' ? 'rtl' : 'ltr'}>
-      {/* Header */}
-      <div className="bg-white shadow-sm border-b">
-        <div className="max-w-7xl mx-auto px-4 py-4">
-          <div className="flex items-center justify-between">
-            <div>
-              <h1 className="text-2xl font-bold text-gray-900">
-                {language === 'ar' ? 'لوحة تحكم المعلن' : 'Advertiser Dashboard'}
-              </h1>
-              <p className="text-sm text-gray-600">
-                {language === 'ar' ? 'إدارة حملاتك الإعلانية ومتابعة الأداء' : 'Manage your campaigns and track performance'}
-              </p>
-            </div>
-            <div className="flex gap-2">
-              <button
-                onClick={() => setShowCreateModal(true)}
-                className="px-4 py-2 bg-green-700 hover:bg-green-800 text-white rounded-lg flex items-center gap-2"
-              >
-                <PlusCircle className="w-5 h-5" />
-                {language === 'ar' ? 'إنشاء حملة' : 'Create Campaign'}
-              </button>
-              <button
-                onClick={onLogout}
-                className="px-4 py-2 bg-red-600 hover:bg-red-700 text-white rounded-lg"
-              >
-                {language === 'ar' ? 'خروج' : 'Logout'}
-              </button>
-            </div>
-          </div>
-        </div>
-      </div>
+    <div className="min-h-screen bg-gray-50 overflow-x-hidden" dir={language === 'ar' ? 'rtl' : 'ltr'}>
 
-      <div className="max-w-7xl mx-auto px-4 py-6">
+      <div className="max-w-7xl mx-auto px-3 sm:px-4 lg:px-6 py-4 sm:py-6">
         {/* Stats Overview */}
-        <div className="grid grid-cols-1 md:grid-cols-4 gap-6 mb-8">
-          <div className="bg-white rounded-xl p-6 shadow-sm">
-            <div className="flex items-center gap-3">
-              <Package className="w-8 h-8 text-green-700" />
-              <div>
-                <p className="text-sm text-gray-600">{language === 'ar' ? 'إجمالي الحملات' : 'Total Campaigns'}</p>
-                <p className="text-2xl font-bold text-gray-900">{campaigns.length}</p>
+        <div className="grid grid-cols-2 sm:grid-cols-2 md:grid-cols-4 gap-3 sm:gap-6 mb-6 sm:mb-8">
+          <div className="bg-white rounded-xl p-4 sm:p-6 shadow-sm">
+            <div className="flex items-center gap-2 sm:gap-3">
+              <Package className="w-6 h-6 sm:w-8 sm:h-8 text-green-700 flex-shrink-0" />
+              <div className="min-w-0">
+                <p className="text-xs sm:text-sm text-gray-600 truncate">{language === 'ar' ? 'إجمالي الحملات' : 'Total Campaigns'}</p>
+                <p className="text-xl sm:text-2xl font-bold text-gray-900">{campaigns.length}</p>
               </div>
             </div>
           </div>
 
-          <div className="bg-white rounded-xl p-6 shadow-sm">
-            <div className="flex items-center gap-3">
-              <MapPin className="w-8 h-8 text-green-700" />
-              <div>
-                <p className="text-sm text-gray-600">{language === 'ar' ? 'أكياس موزعة' : 'Bags Distributed'}</p>
-                <p className="text-2xl font-bold text-gray-900">{totalBagsDistributed}</p>
+          <div className="bg-white rounded-xl p-4 sm:p-6 shadow-sm">
+            <div className="flex items-center gap-2 sm:gap-3">
+              <MapPin className="w-6 h-6 sm:w-8 sm:h-8 text-green-700 flex-shrink-0" />
+              <div className="min-w-0">
+                <p className="text-xs sm:text-sm text-gray-600 truncate">{language === 'ar' ? 'أكياس موزعة' : 'Bags Distributed'}</p>
+                <p className="text-xl sm:text-2xl font-bold text-gray-900">{totalBagsDistributed}</p>
               </div>
             </div>
           </div>
 
-          <div className="bg-white rounded-xl p-6 shadow-sm">
-            <div className="flex items-center gap-3">
-              <Users className="w-8 h-8 text-green-700" />
-              <div>
-                <p className="text-sm text-gray-600">{language === 'ar' ? 'إجمالي المشاركات' : 'Total Plays'}</p>
-                <p className="text-2xl font-bold text-gray-900">{totalStats.plays}</p>
+          <div className="bg-white rounded-xl p-4 sm:p-6 shadow-sm">
+            <div className="flex items-center gap-2 sm:gap-3">
+              <Users className="w-6 h-6 sm:w-8 sm:h-8 text-green-700 flex-shrink-0" />
+              <div className="min-w-0">
+                <p className="text-xs sm:text-sm text-gray-600 truncate">{language === 'ar' ? 'إجمالي المشاركات' : 'Total Plays'}</p>
+                <p className="text-xl sm:text-2xl font-bold text-gray-900">{totalStats.plays}</p>
               </div>
             </div>
           </div>
 
-          <div className="bg-white rounded-xl p-6 shadow-sm">
-            <div className="flex items-center gap-3">
-              <TrendingUp className="w-8 h-8 text-green-700" />
-              <div>
-                <p className="text-sm text-gray-600">{language === 'ar' ? 'جوائز مستبدلة' : 'Prizes Redeemed'}</p>
-                <p className="text-2xl font-bold text-gray-900">{totalStats.redeemed}</p>
+          <div className="bg-white rounded-xl p-4 sm:p-6 shadow-sm">
+            <div className="flex items-center gap-2 sm:gap-3">
+              <TrendingUp className="w-6 h-6 sm:w-8 sm:h-8 text-green-700 flex-shrink-0" />
+              <div className="min-w-0">
+                <p className="text-xs sm:text-sm text-gray-600 truncate">{language === 'ar' ? 'جوائز مستبدلة' : 'Prizes Redeemed'}</p>
+                <p className="text-xl sm:text-2xl font-bold text-gray-900">{totalStats.redeemed}</p>
               </div>
             </div>
           </div>
@@ -569,9 +571,18 @@ export default function NewAdvertiserDashboard({ advertiserId, onLogout }: NewAd
 
         {/* Campaigns List */}
         <div className="space-y-4">
-          <h2 className="text-xl font-bold text-gray-900">
-            {language === 'ar' ? 'حملاتك الإعلانية' : 'Your Campaigns'}
-          </h2>
+          <div className="flex justify-between items-center">
+            <h2 className="text-xl font-bold text-gray-900">
+              {language === 'ar' ? 'حملاتك الإعلانية' : 'Your Campaigns'}
+            </h2>
+            <button
+              onClick={() => setShowCreateModal(true)}
+              className="px-4 py-2 bg-green-700 hover:bg-green-800 text-white rounded-lg flex items-center gap-2 text-sm transition-colors shadow-sm"
+            >
+              <PlusCircle className="w-5 h-5" />
+              {language === 'ar' ? 'حملة جديدة' : 'New Campaign'}
+            </button>
+          </div>
 
           {campaigns.length === 0 ? (
             <div className="bg-white rounded-xl p-12 text-center">
@@ -599,16 +610,21 @@ export default function NewAdvertiserDashboard({ advertiserId, onLogout }: NewAd
                 const statusMsg = getStatusMessage(campaign);
 
                 return (
-                  <div key={campaign.id} className="bg-white rounded-xl shadow-sm p-6">
-                    <div className="flex justify-between items-start mb-4">
-                      <div className="flex-1">
-                        <h3 className="text-xl font-bold text-gray-900">{campaign.store_name}</h3>
+                  <div key={campaign.id} className="bg-white rounded-xl shadow-sm p-4 sm:p-6 overflow-hidden">
+                    <div className="flex flex-col sm:flex-row sm:justify-between sm:items-start gap-3 mb-4">
+                      <div className="flex-1 min-w-0">
+                        <h3 className="text-lg sm:text-xl font-bold text-gray-900 truncate">{campaign.store_name}</h3>
                         <p className="text-sm text-gray-600">{campaign.business_type}</p>
                         {(campaign as any).store_location && (
-                          <div className="flex items-center gap-1 mt-1 text-sm text-gray-600">
-                            <MapPin className="w-4 h-4" />
-                            <span>{(campaign as any).store_location}</span>
-                          </div>
+                          <a
+                            href={(campaign as any).store_location}
+                            target="_blank"
+                            rel="noopener noreferrer"
+                            className="flex items-center gap-1 mt-1 text-sm text-blue-600 hover:text-blue-800 transition-colors"
+                          >
+                            <MapPin className="w-4 h-4 flex-shrink-0" />
+                            <span className="truncate">{language === 'ar' ? 'عرض الموقع على الخريطة' : 'View on Map'}</span>
+                          </a>
                         )}
                         {(campaign as any).neighborhoods && Array.isArray((campaign as any).neighborhoods) && (campaign as any).neighborhoods.length > 0 && (
                           <div className="flex items-center gap-2 mt-2 flex-wrap">
@@ -620,7 +636,7 @@ export default function NewAdvertiserDashboard({ advertiserId, onLogout }: NewAd
                           </div>
                         )}
                       </div>
-                      <div className="flex gap-2 items-center">
+                      <div className="flex gap-2 items-center flex-shrink-0 flex-wrap">
                         {getStatusBadge(campaign.status)}
                         <button
                           onClick={() => handlePayment(campaign)}
@@ -638,6 +654,16 @@ export default function NewAdvertiserDashboard({ advertiserId, onLogout }: NewAd
                         >
                           <Eye className="w-5 h-5" />
                         </button>
+                        <button
+                          onClick={() => {
+                            setSelectedCampaign(campaign);
+                            setShowQRModal(true);
+                          }}
+                          className="p-2 text-indigo-600 hover:bg-indigo-50 rounded-lg"
+                          title={language === 'ar' ? 'عرض الكود' : 'Show QR'}
+                        >
+                          <QrCode className="w-5 h-5" />
+                        </button>
                       </div>
                     </div>
 
@@ -647,32 +673,34 @@ export default function NewAdvertiserDashboard({ advertiserId, onLogout }: NewAd
                       </div>
                     )}
 
-                    <p className="text-gray-700 mb-4">{campaign.description}</p>
+                    {campaign.description && (
+                      <p className="text-gray-700 mb-4 text-sm sm:text-base break-words">{campaign.description}</p>
+                    )}
 
-                    <div className="grid grid-cols-2 md:grid-cols-5 gap-4 mb-4 p-4 bg-gray-50 rounded-lg">
-                      <div>
-                        <p className="text-xs text-gray-500">{language === 'ar' ? 'أكياس موزعة' : 'Bags'}</p>
-                        <p className="text-lg font-bold text-gray-900">{campaign.bags_distributed || 0}</p>
+                    <div className="grid grid-cols-3 sm:grid-cols-5 gap-2 sm:gap-4 mb-4 p-3 sm:p-4 bg-gray-50 rounded-lg">
+                      <div className="text-center sm:text-start">
+                        <p className="text-[10px] sm:text-xs text-gray-500">{language === 'ar' ? 'أكياس موزعة' : 'Bags'}</p>
+                        <p className="text-base sm:text-lg font-bold text-gray-900">{campaign.bags_distributed || 0}</p>
                       </div>
-                      <div>
-                        <p className="text-xs text-gray-500">{language === 'ar' ? 'مشاركات' : 'Plays'}</p>
-                        <p className="text-lg font-bold text-gray-900">{stats.total_plays}</p>
+                      <div className="text-center sm:text-start">
+                        <p className="text-[10px] sm:text-xs text-gray-500">{language === 'ar' ? 'مشاركات' : 'Plays'}</p>
+                        <p className="text-base sm:text-lg font-bold text-gray-900">{stats.total_plays}</p>
                       </div>
-                      <div>
-                        <p className="text-xs text-gray-500">{language === 'ar' ? 'فائزين' : 'Winners'}</p>
-                        <p className="text-lg font-bold text-gray-900">{stats.total_wins}</p>
+                      <div className="text-center sm:text-start">
+                        <p className="text-[10px] sm:text-xs text-gray-500">{language === 'ar' ? 'فائزين' : 'Winners'}</p>
+                        <p className="text-base sm:text-lg font-bold text-gray-900">{stats.total_wins}</p>
                       </div>
-                      <div>
-                        <p className="text-xs text-gray-500">{language === 'ar' ? 'مستبدل' : 'Redeemed'}</p>
-                        <p className="text-lg font-bold text-gray-900">{stats.total_redeemed}</p>
+                      <div className="text-center sm:text-start">
+                        <p className="text-[10px] sm:text-xs text-gray-500">{language === 'ar' ? 'مستبدل' : 'Redeemed'}</p>
+                        <p className="text-base sm:text-lg font-bold text-gray-900">{stats.total_redeemed}</p>
                       </div>
-                      <div>
-                        <p className="text-xs text-gray-500">{language === 'ar' ? 'نسبة الفوز' : 'Win Rate'}</p>
-                        <p className="text-lg font-bold text-green-700">{stats.win_rate.toFixed(1)}%</p>
+                      <div className="text-center sm:text-start">
+                        <p className="text-[10px] sm:text-xs text-gray-500">{language === 'ar' ? 'نسبة الفوز' : 'Win Rate'}</p>
+                        <p className="text-base sm:text-lg font-bold text-green-700">{stats.win_rate.toFixed(1)}%</p>
                       </div>
                     </div>
 
-                    <div className="flex justify-between items-center text-sm text-gray-600">
+                    <div className="flex flex-wrap justify-between items-center text-xs sm:text-sm text-gray-600 gap-2">
                       <span>
                         {language === 'ar' ? 'من' : 'From'} {new Date(campaign.start_date).toLocaleDateString('ar-SA')}
                       </span>
@@ -1269,6 +1297,41 @@ export default function NewAdvertiserDashboard({ advertiserId, onLogout }: NewAd
                 </button>
               </div>
             </form>
+          </div>
+        </div>
+      )}
+
+      {/* QR Code Modal */}
+      {showQRModal && selectedCampaign && (
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4 z-50">
+          <div className="bg-white rounded-2xl p-8 max-w-sm w-full text-center">
+            <h3 className="text-xl font-bold mb-4">{selectedCampaign.store_name}</h3>
+            <div className="bg-white p-4 rounded-xl border-2 border-dashed border-gray-200 inline-block mb-6 shadow-sm">
+              <QRCodeSVG 
+                value={`${window.location.origin}/game?c=${selectedCampaign.id}`} 
+                size={200}
+                level="H"
+              />
+            </div>
+            <p className="text-sm text-gray-500 mb-6">
+              {language === 'ar' 
+                ? 'قم بطباعة هذا الكود ووضعه على أكياس التسوق ليقوم العملاء بمسحه.' 
+                : 'Print this code and place it on shopping bags for customers to scan.'}
+            </p>
+            <div className="flex gap-4">
+              <button
+                onClick={() => window.print()}
+                className="flex-1 py-2 bg-green-700 text-white rounded-lg hover:bg-green-800 transition-colors"
+              >
+                {language === 'ar' ? 'طباعة' : 'Print'}
+              </button>
+              <button
+                onClick={() => setShowQRModal(false)}
+                className="flex-1 py-2 bg-gray-100 text-gray-700 rounded-lg hover:bg-gray-200 transition-colors"
+              >
+                {language === 'ar' ? 'إغلاق' : 'Close'}
+              </button>
+            </div>
           </div>
         </div>
       )}

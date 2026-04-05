@@ -33,7 +33,7 @@ export default function MarketplacePage({ userId, onSelectCampaign }: {
   userId: string;
   onSelectCampaign: (campaignId: string) => void;
 }) {
-  const { t, language } = useLanguage();
+  const { language } = useLanguage();
   const [campaigns, setCampaigns] = useState<Campaign[]>([]);
   const [loading, setLoading] = useState(true);
   const [selectedNeighborhood, setSelectedNeighborhood] = useState<string>('all');
@@ -95,7 +95,7 @@ export default function MarketplacePage({ userId, onSelectCampaign }: {
           .from('game_attempts')
           .select('*', { count: 'exact', head: true })
           .eq('user_id', userId)
-          .gte('played_at', new Date().setHours(0, 0, 0, 0));
+          .gte('played_at', new Date(new Date().setHours(0, 0, 0, 0)).toISOString());
 
         const hasPlayedToday = (totalPlaysToday || 0) > 0;
 
@@ -108,7 +108,7 @@ export default function MarketplacePage({ userId, onSelectCampaign }: {
               .select('*', { count: 'exact', head: true })
               .eq('user_id', userId)
               .eq('campaign_id', campaign.id)
-              .gte('played_at', new Date().setHours(0, 0, 0, 0));
+              .gte('played_at', new Date(new Date().setHours(0, 0, 0, 0)).toISOString());
 
             const attemptsToday = count || 0;
             const canPlay = !hasPlayedToday && attemptsToday < (campaign.daily_attempts_per_user || 1);
@@ -158,51 +158,32 @@ export default function MarketplacePage({ userId, onSelectCampaign }: {
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-green-50 to-emerald-50 pb-20 animate-fade-in" dir={language === 'ar' ? 'rtl' : 'ltr'}>
-      {/* Header */}
-      <div className="bg-white shadow-lg sticky top-0 z-20 border-b-2 border-green-200 backdrop-blur-md bg-white/95">
-        <div className="max-w-6xl mx-auto px-3 sm:px-4 py-3 sm:py-4">
-          <div className="flex items-center gap-2 sm:gap-3 mb-3 sm:mb-4">
-            <img
-              src="/Gemini_Generated_Image_osua1vosua1vosua.png"
-              alt="Logo"
-              className="w-12 h-12 sm:w-16 sm:h-16 object-contain animate-bounce-slow"
-            />
-            <div className="flex-1 min-w-0">
-              <h1 className="text-lg sm:text-2xl font-bold text-gray-900 truncate">
-                {language === 'ar' ? 'حلول الحقيبة' : 'Bag Solutions'}
-              </h1>
-              <p className="text-xs sm:text-sm text-gray-600 truncate">
-                {language === 'ar' ? 'اختر واربح جوائز من المحلات' : 'Choose and win prizes from stores'}
-              </p>
-            </div>
-          </div>
-
-          {/* Neighborhood Filter */}
-          <div className="flex gap-2 overflow-x-auto pb-2 scrollbar-hide -mx-3 px-3 sm:mx-0 sm:px-0">
+      {/* Neighborhood Filter - Mobile Sticky */}
+      <div className="bg-white/60 backdrop-blur-sm sticky top-[64px] z-20 border-b border-green-100 px-4 py-3">
+        <div className="max-w-6xl mx-auto flex gap-2 overflow-x-auto pb-1 scrollbar-hide">
+          <button
+            onClick={() => setSelectedNeighborhood('all')}
+            className={`px-4 py-2 rounded-xl whitespace-nowrap transition-all duration-300 font-bold text-xs sm:text-sm transform hover:scale-105 active:scale-95 ${
+              selectedNeighborhood === 'all'
+                ? 'bg-gradient-to-r from-green-600 to-emerald-600 text-white shadow-lg shadow-green-500/30'
+                : 'bg-white text-gray-600 border border-gray-100 hover:bg-green-50'
+            }`}
+          >
+            {language === 'ar' ? 'الكل' : 'All'}
+          </button>
+          {neighborhoods.map((nb) => (
             <button
-              onClick={() => setSelectedNeighborhood('all')}
-              className={`px-3 sm:px-4 py-2 rounded-xl whitespace-nowrap transition-all duration-300 font-bold text-xs sm:text-sm transform hover:scale-105 active:scale-95 ${
-                selectedNeighborhood === 'all'
-                  ? 'bg-gradient-to-r from-green-500 to-emerald-500 text-white shadow-lg shadow-green-500/50'
-                  : 'bg-gray-100 text-gray-700 hover:bg-green-100 hover:shadow-md'
+              key={nb.id}
+              onClick={() => setSelectedNeighborhood(nb.id)}
+              className={`px-4 py-2 rounded-xl whitespace-nowrap transition-all duration-300 font-bold text-xs sm:text-sm transform hover:scale-105 active:scale-95 ${
+                selectedNeighborhood === nb.id
+                  ? 'bg-gradient-to-r from-green-600 to-emerald-600 text-white shadow-lg shadow-green-500/30'
+                  : 'bg-white text-gray-600 border border-gray-100 hover:bg-green-50'
               }`}
             >
-              {language === 'ar' ? 'الكل' : 'All'}
+              {language === 'ar' ? nb.name_ar : nb.name_en}
             </button>
-            {neighborhoods.map((nb) => (
-              <button
-                key={nb.id}
-                onClick={() => setSelectedNeighborhood(nb.id)}
-                className={`px-3 sm:px-4 py-2 rounded-xl whitespace-nowrap transition-all duration-300 font-bold text-xs sm:text-sm transform hover:scale-105 active:scale-95 ${
-                  selectedNeighborhood === nb.id
-                    ? 'bg-gradient-to-r from-green-500 to-emerald-500 text-white shadow-lg shadow-green-500/50'
-                    : 'bg-gray-100 text-gray-700 hover:bg-green-100 hover:shadow-md'
-                }`}
-              >
-                {language === 'ar' ? nb.name_ar : nb.name_en}
-              </button>
-            ))}
-          </div>
+          ))}
         </div>
       </div>
 

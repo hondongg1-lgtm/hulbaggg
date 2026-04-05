@@ -1,53 +1,40 @@
 import { useAuth } from './contexts/AuthContext';
+import Navbar from './components/Navbar';
 import LoginPage from './pages/LoginPage';
 import NewAdminDashboard from './pages/NewAdminDashboard';
 import NewAdvertiserDashboard from './pages/NewAdvertiserDashboard';
-import { LanguageProvider } from './contexts/LanguageContext';
-
-
 
 export default function DashboardApp() {
-  const { user, userRole, userProfile, signOut, loading } = useAuth();
+  const { user, userRole, userProfile, loading } = useAuth();
 
   const handleLoginSuccess = () => {
     // Auth context will automatically update and re-render
-  };
-
-  const handleLogout = async () => {
-    await signOut();
   };
 
   if (loading) return null;
 
   if (!user || !userRole || !userProfile) {
     return (
-      <LanguageProvider>
-        <LoginPage onLoginSuccess={handleLoginSuccess} />
-      </LanguageProvider>
+      <LoginPage onLoginSuccess={handleLoginSuccess} />
     );
   }
 
-  if (userRole === 'admin') {
-    return (
-      <LanguageProvider>
-        <NewAdminDashboard
-          adminId={userProfile.id}
-          onLogout={handleLogout}
-        />
-      </LanguageProvider>
-    );
-  }
+  return (
+    <div className="flex flex-col min-h-screen">
+      <Navbar />
+      <main className="flex-1">
+        {userRole === 'admin' && (
+          <NewAdminDashboard
+            adminId={userProfile.id}
+          />
+        )}
 
-  if (userRole === 'advertiser') {
-    return (
-      <LanguageProvider>
-        <NewAdvertiserDashboard
-          advertiserId={userProfile.id}
-          onLogout={handleLogout}
-        />
-      </LanguageProvider>
-    );
-  }
-
-  return null;
+        {userRole === 'advertiser' && (
+          <NewAdvertiserDashboard
+            advertiserId={userProfile.id}
+          />
+        )}
+      </main>
+    </div>
+  );
 }
